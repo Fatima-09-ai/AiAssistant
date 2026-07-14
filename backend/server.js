@@ -31,14 +31,25 @@ const allowedOrigins = [
 // covers Express serving the frontend itself (any PORT value), Live Server,
 // Vite, etc. during local development.
 const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-
 app.use(
   cors({
     origin(origin, callback) {
-      // Non-browser requests (curl, some native mobile fetch configs) send no Origin header — allow those.
-      // Pages loaded via file:// (the Electron desktop build) send the literal string "null" as their origin.
-      if (!origin || origin === "null") return callback(null, true);
-      if (allowedOrigins.includes(origin) || localhostPattern.test(origin)) return callback(null, true);
+      if (!origin || origin === "null") {
+        return callback(null, true);
+      }
+
+      if (
+        localhostPattern.test(origin) ||
+        allowedOrigins.includes(origin)
+      ) {
+        return callback(null, true);
+      }
+
+      // Allow any Back4App deployment
+      if (origin.endsWith(".b4a.run")) {
+        return callback(null, true);
+      }
+
       callback(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true,
