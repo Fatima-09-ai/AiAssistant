@@ -1,0 +1,132 @@
+.notes-tabs {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.notes-tab {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  padding: 7px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+.notes-tab.active {
+  background: var(--aurora-gradient);
+  color: #06090f;
+  border-color: transparent;
+}
+
+.notes-workspace {
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 24px 28px 60px;
+  overflow-y: auto;
+  height: calc(100vh - 64px);
+}
+
+.panel { display: flex; flex-direction: column; gap: 20px; }
+
+.empty-hint {
+  color: var(--text-faint);
+  font-size: 14px;
+  padding: 30px 0;
+  text-align: center;
+}
+
+/* Notes */
+.note-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.note-form .btn { align-self: flex-end; }
+
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.note-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 120px;
+}
+.note-card.pinned { border-color: var(--violet); }
+.note-title {
+  font-weight: 700;
+  font-size: 15px;
+  outline: none;
+}
+.note-content {
+  font-size: 13.5px;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  outline: none;
+  flex: 1;
+}
+.note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  opacity: 0.7;
+}
+.icon-btn:hover { opacity: 1; background: var(--bg-raised); }
+
+/* Todos */
+.todo-form {
+  display: flex;
+  gap: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.todo-form input[type="text"] { flex: 1; }
+.todo-form input[type="date"] { width: 150px; }
+
+.todos-list { display: flex; flex-direction: column; gap: 6px; }
+.todo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+.todo-row input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--teal); flex-shrink: 0;
+}
+.todo-text { flex: 1; outline: none; font-size: 14.5px; }
+.todo-row.completed .todo-text { text-decoration: line-through; color: var(--text-faint); }
+.todo-due {
+  font-size: 12px;
+  color: var(--text-faint);
+  background: var(--bg-raised);
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+.todo-due.overdue { color: var(--danger); }

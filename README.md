@@ -180,4 +180,6 @@ aura-ai-assistant/
 Tell me which feature to layer on next — email verification, refresh tokens,
 or something else — and I'll build it directly on this verified core.
 #   A i A s s i s t a n t  
+ #   A i A s s i s t a n t  
+ #   A i A s s i s t a n t  
  
