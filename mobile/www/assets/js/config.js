@@ -10,4 +10,4 @@
  * app, change AURA_API_BASE_URL below to your deployed backend, e.g.:
  *   window.AURA_API_BASE_URL = "https://your-backend.onrender.com/api";
  */
-window.AURA_API_BASE_URL = "/api";
+window.AURA_API_BASE_URL = "https://aiassistant-i1i5pvos.b4a.run/api";
