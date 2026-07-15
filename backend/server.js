@@ -86,9 +86,16 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-async function start() {
-  await connectDB();
+// Kick off the DB connection as soon as this module loads. Mongoose buffers
+// queries until the connection is ready by default, so routes work correctly
+// even if a request comes in before this resolves.
+connectDB().catch((err) => console.error("Startup DB connection error:", err.message));
+
+// Only actually bind to a port when run directly (local dev / traditional
+// hosts like Back4App or Render). On Vercel, this file is imported as a
+// serverless function handler instead, so app.listen must NOT run there.
+if (require.main === module) {
   app.listen(PORT, () => console.log(`AURA server running on http://localhost:${PORT}`));
 }
 
-start();
+module.exports = app;
