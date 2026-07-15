@@ -1,6 +1,5 @@
 require("dotenv").config();
 const express = require("express");
-app.set("trust proxy", 1);
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
@@ -17,7 +16,7 @@ const todosRoutes = require("./routes/todosRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
-
+app.set("trust proxy", 1);
 // --- Core middleware ---
 // CLIENT_URL can be a comma-separated list (e.g. multiple deployed frontends).
 // Capacitor's native app schemes are allowed by default so the mobile build
