@@ -17,6 +17,7 @@
 </head>
 <body>
   <div class="app-shell">
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
     <aside class="sidebar">
       <div class="sidebar-brand">
         <div class="aura-mark" style="width:20px;height:20px;">
@@ -47,6 +48,9 @@
     <main class="chat-main">
       <header class="chat-header">
         <div class="brand-row">
+          <button type="button" id="sidebar-toggle" class="hamburger-btn" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+          </button>
           <strong>🛡️ Admin panel</strong>
         </div>
       </header>
@@ -80,6 +84,7 @@
   <script src="assets/js/api.js"></script>
   <script src="assets/js/toast.js"></script>
   <script src="assets/js/theme.js"></script>
+  <script src="assets/js/sidebar.js"></script>
   <script src="assets/js/auth.js"></script>
   <script src="assets/js/admin.js"></script>
 </body>
