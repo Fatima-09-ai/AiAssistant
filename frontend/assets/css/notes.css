@@ -138,6 +138,7 @@
   .notes-workspace {
     padding: 16px 14px 40px;
     height: calc(100dvh - 60px);
+    height: calc((var(--real-vh, 1vh) * 100) - 60px);
   }
   .notes-tabs { gap: 4px; }
   .notes-tab { padding: 6px 12px; font-size: 12.5px; }
