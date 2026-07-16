@@ -1,10 +1,4 @@
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
 const multer = require("multer");
-
-const UPLOAD_DIR = path.join(__dirname, "..", "uploads");
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // mimetype -> "image" | "document", used both to validate the upload and to
 // decide later whether AURA should look at it with the vision model or just
@@ -21,16 +15,12 @@ const ALLOWED_TYPES = {
   "text/markdown": "document",
 };
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    // Random name on disk — never trust/reuse the original filename, and it
-    // keeps one user from being able to guess another user's file URL.
-    const randomName = crypto.randomBytes(16).toString("hex");
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${randomName}${ext}`);
-  },
-});
+// Memory storage — the file lives only as a Buffer on req.file.buffer, never
+// written to disk. Vercel's serverless functions have a read-only
+// filesystem (aside from /tmp, which is wiped between invocations anyway),
+// so disk storage silently fails there. The buffer gets uploaded straight
+// to Cloudinary right after (see chatController.buildAttachment).
+const storage = multer.memoryStorage();
 
 function fileFilter(req, file, cb) {
   if (!ALLOWED_TYPES[file.mimetype]) {
@@ -45,4 +35,4 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
 });
 
-module.exports = { upload, ALLOWED_TYPES, UPLOAD_DIR };
+module.exports = { upload, ALLOWED_TYPES };
