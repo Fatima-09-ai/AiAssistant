@@ -1,4 +1,4 @@
-const fs = require("fs/promises");
+const crypto = require("crypto");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const { generateReply } = require("../services/groqService");
@@ -6,24 +6,42 @@ const { buildSystemPrompt, maybeStoreFact } = require("../services/memoryService
 const { generateTxt, streamPdf } = require("../utils/exportConversation");
 const { extractText, toImageDataUrl } = require("../utils/fileProcessor");
 const { ALLOWED_TYPES } = require("../middlewares/uploadMiddleware");
+const { uploadBuffer, deleteFile } = require("../services/cloudinaryService");
 
 /**
- * Turns a multer file into the attachment record we save on the Message,
- * pulling out document text now (so future turns can still "see" it even
- * though we won't resend the raw file to Groq again).
+ * Turns a multer (memoryStorage) file into the attachment record we save on
+ * the Message. The buffer is uploaded straight to Cloudinary — never
+ * written to disk, since that's what breaks on Vercel's serverless
+ * functions — and we pull out document text now (so future turns can still
+ * "see" it even though we won't resend the raw file to Groq again).
  */
 async function buildAttachment(file) {
   const kind = ALLOWED_TYPES[file.mimetype];
+  const isImage = kind === "image";
+  // We generate this id ourselves (rather than letting Cloudinary name the
+  // file) so we control the public_id and can look the attachment back up
+  // by a value we already know, the same way the old disk storage used a
+  // random on-disk filename.
+  const storedName = crypto.randomBytes(16).toString("hex");
+
+  const result = await uploadBuffer(file.buffer, {
+    publicId: storedName,
+    folder: "aura-uploads",
+    resourceType: isImage ? "image" : "raw", // non-image docs (pdf/docx/txt/csv) must be "raw" or Cloudinary won't return the original bytes
+  });
+
   const attachment = {
     originalName: file.originalname,
-    storedName: file.filename,
+    storedName,
+    cloudinaryPublicId: result.public_id,
+    cloudinaryUrl: result.secure_url,
     mimetype: file.mimetype,
     size: file.size,
     kind,
-    url: `/uploads/${file.filename}`,
+    url: `/api/chat/attachments/${storedName}`,
   };
   if (kind === "document") {
-    attachment.extractedText = await extractText(file.path, file.mimetype);
+    attachment.extractedText = await extractText(file.buffer, file.mimetype);
   }
   return attachment;
 }
@@ -134,15 +152,12 @@ async function sendMessage(req, res, next) {
       conversationId = conversation._id;
     }
 
-    // Build attachment metadata (and extract document text) before saving
+    // Build attachment metadata (and extract document text) before saving.
+    // No disk cleanup needed on failure here — the file only ever exists as
+    // an in-memory buffer until it's uploaded to Cloudinary.
     let attachment;
     if (file) {
-      try {
-        attachment = await buildAttachment(file);
-      } catch (err) {
-        await fs.unlink(file.path).catch(() => {});
-        throw err;
-      }
+      attachment = await buildAttachment(file);
     }
 
     // Save user message
@@ -166,7 +181,7 @@ async function sendMessage(req, res, next) {
     let liveImageDataUrl;
     const hasImage = attachment?.kind === "image";
     if (hasImage) {
-      liveImageDataUrl = await toImageDataUrl(file.path, file.mimetype);
+      liveImageDataUrl = toImageDataUrl(file.buffer, file.mimetype);
     }
 
     const history = ordered.map((m) =>
@@ -219,11 +234,13 @@ async function deleteConversation(req, res, next) {
     const messages = await Message.find({ conversation: conversation._id });
     await Message.deleteMany({ conversation: conversation._id });
 
-    // Clean up any uploaded files so they don't pile up on disk
-    const { UPLOAD_DIR } = require("../middlewares/uploadMiddleware");
-    const path = require("path");
-    const filesToRemove = messages.flatMap((m) => (m.attachments || []).map((a) => path.join(UPLOAD_DIR, a.storedName)));
-    await Promise.all(filesToRemove.map((p) => fs.unlink(p).catch(() => {})));
+    // Clean up any uploaded files on Cloudinary so they don't pile up
+    const cleanups = messages.flatMap((m) =>
+      (m.attachments || []).map((a) =>
+        deleteFile(a.cloudinaryPublicId, a.kind === "image" ? "image" : "raw").catch(() => {})
+      )
+    );
+    await Promise.all(cleanups);
 
     res.json({ success: true, message: "Conversation deleted" });
   } catch (err) {
@@ -263,9 +280,12 @@ async function exportConversation(req, res, next) {
 }
 
 // GET /api/chat/attachments/:filename
-// Deliberately not a plain express.static mount on /uploads — that would let
-// anyone with a link view any user's file. This checks the filename actually
-// belongs to one of the requesting user's own messages first.
+// Deliberately not a direct link to the Cloudinary URL — that would let
+// anyone with a link view any user's file, and the frontend's img/link
+// handling expects to hit our own authenticated endpoint (see
+// api.attachmentBlobUrl). This checks the file actually belongs to one of
+// the requesting user's own messages first, then proxies the bytes back
+// from Cloudinary so nothing changes on the client side.
 async function getAttachment(req, res, next) {
   try {
     const { filename } = req.params;
@@ -276,10 +296,14 @@ async function getAttachment(req, res, next) {
     if (!message) return res.status(404).json({ success: false, message: "File not found" });
 
     const attachment = message.attachments.find((a) => a.storedName === filename);
-    const { UPLOAD_DIR } = require("../middlewares/uploadMiddleware");
-    const path = require("path");
+
+    const cloudinaryRes = await fetch(attachment.cloudinaryUrl);
+    if (!cloudinaryRes.ok) {
+      return res.status(502).json({ success: false, message: "Failed to fetch attachment" });
+    }
+    const buffer = Buffer.from(await cloudinaryRes.arrayBuffer());
     res.type(attachment.mimetype);
-    res.sendFile(path.join(UPLOAD_DIR, filename));
+    res.send(buffer);
   } catch (err) {
     next(err);
   }
