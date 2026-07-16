@@ -48,6 +48,7 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   transition: background 0.2s ease, color 0.2s ease;
 }
@@ -145,6 +146,7 @@ input:focus, textarea:focus { border-color: var(--teal); }
 /* --- Auth pages --- */
 .auth-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
