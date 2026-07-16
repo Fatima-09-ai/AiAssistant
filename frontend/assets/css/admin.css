@@ -90,6 +90,7 @@
   .admin-workspace {
     padding: 16px 14px 40px;
     height: calc(100dvh - 60px);
+    height: calc((var(--real-vh, 1vh) * 100) - 60px);
   }
   .stats-grid { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
   .stat-card { padding: 12px; }
