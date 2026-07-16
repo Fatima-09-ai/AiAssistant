@@ -82,3 +82,20 @@
 .small-btn.danger { color: var(--danger); border-color: rgba(251, 113, 133, 0.3); }
 .small-btn.danger:hover { background: rgba(251, 113, 133, 0.1); }
 .self-tag { font-size: 12px; color: var(--text-faint); font-style: italic; }
+
+/* =========================
+   Mobile (<= 900px)
+   ========================= */
+@media (max-width: 900px) {
+  .admin-workspace {
+    padding: 16px 14px 40px;
+    height: calc(100dvh - 60px);
+  }
+  .stats-grid { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+  .stat-card { padding: 12px; }
+  .stat-value { font-size: 22px; }
+
+  /* Table scrolls horizontally instead of squeezing columns unreadably */
+  .users-table { font-size: 12.5px; }
+  .users-table th, .users-table td { padding: 10px 12px; white-space: nowrap; }
+}
