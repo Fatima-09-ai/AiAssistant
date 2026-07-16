@@ -72,6 +72,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:14px;">
           <span id="status-label" class="status-label">Idle</span>
+          <button type="button" id="search-toggle-btn" class="btn btn-ghost icon-btn" title="Search this chat">🔍</button>
           <div class="model-toggle" id="model-toggle" title="Smart: better reasoning. Fast: quicker replies.">
             <button type="button" class="model-option active" data-model="smart">✨ Smart</button>
             <button type="button" class="model-option" data-model="fast">⚡ Fast</button>
@@ -85,6 +86,15 @@
           </div>
         </div>
       </header>
+
+      <div id="chat-search-bar" class="chat-search-bar" hidden>
+        <span class="chat-search-icon">🔍</span>
+        <input type="text" id="chat-search-input" placeholder="Search this chat..." />
+        <span id="chat-search-count" class="chat-search-count"></span>
+        <button type="button" id="chat-search-prev" class="chat-search-nav" aria-label="Previous match">↑</button>
+        <button type="button" id="chat-search-next" class="chat-search-nav" aria-label="Next match">↓</button>
+        <button type="button" id="chat-search-close" class="chat-search-close" aria-label="Close search">×</button>
+      </div>
 
       <div id="messages" class="messages"></div>
 
