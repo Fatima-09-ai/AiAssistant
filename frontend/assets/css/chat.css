@@ -3,6 +3,7 @@
   grid-template-columns: 280px 1fr;
   height: 100vh;
   height: 100dvh;
+  height: calc(var(--real-vh, 1vh) * 100);
 }
 
 .hamburger-btn {
@@ -359,7 +360,7 @@
 
   body.sidebar-open-lock { overflow: hidden; }
 
-  .chat-main { height: 100vh; height: 100dvh; }
+  .chat-main { height: 100vh; height: 100dvh; height: calc(var(--real-vh, 1vh) * 100); }
 
   .chat-header { padding: 12px 14px; gap: 10px; }
   .chat-header .brand-row strong { font-size: 14px; }
