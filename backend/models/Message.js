@@ -3,11 +3,13 @@ const mongoose = require("mongoose");
 const attachmentSchema = new mongoose.Schema(
   {
     originalName: { type: String, required: true },
-    storedName: { type: String, required: true }, // filename on disk (random, avoids collisions/guessing)
+    storedName: { type: String, required: true }, // our own random id (avoids collisions/guessing); also used as the Cloudinary public_id
+    cloudinaryPublicId: { type: String, required: true }, // full Cloudinary public_id, needed to delete the file later
+    cloudinaryUrl: { type: String, required: true }, // actual Cloudinary secure_url, fetched server-side when proxying the file back
     mimetype: { type: String, required: true },
     size: { type: Number, required: true },
     kind: { type: String, enum: ["image", "document"], required: true },
-    url: { type: String, required: true }, // path AURA served it back at, e.g. /uploads/<file>
+    url: { type: String, required: true }, // AURA's own attachment endpoint, e.g. /api/chat/attachments/<storedName>
     extractedText: { type: String, default: "" }, // documents only — cached so later turns keep context
   },
   { _id: false }
