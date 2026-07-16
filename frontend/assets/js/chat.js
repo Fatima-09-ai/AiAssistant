@@ -15,6 +15,16 @@ const attachBtn = document.getElementById("attach-btn");
 const fileInput = document.getElementById("file-input");
 const attachmentPreviewEl = document.getElementById("attachment-preview");
 const modelToggleEl = document.getElementById("model-toggle");
+const searchToggleBtn = document.getElementById("search-toggle-btn");
+const chatSearchBar = document.getElementById("chat-search-bar");
+const chatSearchInput = document.getElementById("chat-search-input");
+const chatSearchCount = document.getElementById("chat-search-count");
+const chatSearchPrev = document.getElementById("chat-search-prev");
+const chatSearchNext = document.getElementById("chat-search-next");
+const chatSearchClose = document.getElementById("chat-search-close");
+
+let searchMatches = [];
+let currentMatchIndex = -1;
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024; // matches the backend's multer limit
 
@@ -61,6 +71,33 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   document.getElementById("logout-btn").addEventListener("click", logoutUser);
+
+  searchToggleBtn.addEventListener("click", () => {
+    const opening = chatSearchBar.hidden;
+    chatSearchBar.hidden = !opening;
+    if (opening) {
+      chatSearchInput.focus();
+    } else {
+      chatSearchInput.value = "";
+      performSearch("");
+    }
+  });
+
+  chatSearchClose.addEventListener("click", () => {
+    chatSearchBar.hidden = true;
+    chatSearchInput.value = "";
+    performSearch("");
+  });
+
+  chatSearchInput.addEventListener("input", () => performSearch(chatSearchInput.value.trim()));
+
+  chatSearchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); e.shiftKey ? goToPrevMatch() : goToNextMatch(); }
+    if (e.key === "Escape") { e.preventDefault(); chatSearchClose.click(); }
+  });
+
+  chatSearchNext.addEventListener("click", goToNextMatch);
+  chatSearchPrev.addEventListener("click", goToPrevMatch);
 
   exportBtn.addEventListener("click", () => {
     if (exportBtn.disabled) return;
@@ -142,6 +179,201 @@ function setAuraState(state) {
   } else {
     statusLabel.textContent = "Idle";
   }
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Highlights the first occurrence of `term` inside a .message-text element.
+// Keeps the original text stashed in a data attribute so it can be restored
+// exactly (and re-searched) without losing content to repeated highlighting.
+function highlightText(el, term) {
+  if (el.dataset.rawText === undefined) el.dataset.rawText = el.textContent;
+  const original = el.dataset.rawText;
+
+  if (!term) {
+    el.textContent = original;
+    return false;
+  }
+  const idx = original.toLowerCase().indexOf(term.toLowerCase());
+  if (idx === -1) {
+    el.textContent = original;
+    return false;
+  }
+  const before = escapeHtml(original.slice(0, idx));
+  const match = escapeHtml(original.slice(idx, idx + term.length));
+  const after = escapeHtml(original.slice(idx + term.length));
+  el.innerHTML = `${before}<mark class="chat-search-highlight">${match}</mark>${after}`;
+  return true;
+}
+
+function performSearch(term) {
+  searchMatches = [];
+  messagesEl.querySelectorAll(".message-text").forEach((textEl) => {
+    const matched = highlightText(textEl, term);
+    const messageEl = textEl.closest(".message");
+    if (!term) {
+      messageEl.classList.remove("message-dimmed");
+      return;
+    }
+    if (matched) {
+      messageEl.classList.remove("message-dimmed");
+      searchMatches.push(messageEl);
+    } else {
+      messageEl.classList.add("message-dimmed");
+    }
+  });
+  currentMatchIndex = searchMatches.length ? 0 : -1;
+  updateSearchCount();
+  if (currentMatchIndex >= 0) scrollToMatch();
+}
+
+function updateSearchCount() {
+  chatSearchCount.textContent = chatSearchInput.value
+    ? (searchMatches.length ? `${currentMatchIndex + 1}/${searchMatches.length}` : "0/0")
+    : "";
+}
+
+function scrollToMatch() {
+  const target = searchMatches[currentMatchIndex];
+  if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function goToNextMatch() {
+  if (!searchMatches.length) return;
+  currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
+  updateSearchCount();
+  scrollToMatch();
+}
+
+function goToPrevMatch() {
+  if (!searchMatches.length) return;
+  currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+  updateSearchCount();
+  scrollToMatch();
+}
+
+async function copyMessageText(content, btn) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(content);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = content;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    const original = btn.innerHTML;
+    btn.innerHTML = "✅";
+    setTimeout(() => { btn.innerHTML = original; }, 1200);
+  } catch (err) {
+    showToast("Couldn't copy text.", "error");
+  }
+}
+
+// Re-sends the question that produced this assistant message to get a fresh
+// reply, and swaps it in place. Note: this asks the backend for a new answer
+// just like a normal send, so the regenerated turn is stored as an
+// additional exchange in the conversation history (the original isn't
+// deleted server-side, just replaced in this view).
+async function regenerateResponse(messageEl) {
+  const prevUserEl = messageEl.previousElementSibling;
+  if (!prevUserEl || !prevUserEl.classList.contains("user")) {
+    showToast("Can't find the original question to regenerate.", "error");
+    return;
+  }
+  const userTextEl = prevUserEl.querySelector(".message-text");
+  const userText = userTextEl ? (userTextEl.dataset.rawText || userTextEl.textContent) : "";
+  if (!userText) {
+    showToast("Nothing to regenerate.", "error");
+    return;
+  }
+
+  const textEl = messageEl.querySelector(".message-text");
+  const originalContent = textEl ? textEl.textContent : "";
+  messageEl.classList.add("regenerating");
+  if (textEl) textEl.textContent = "Regenerating...";
+
+  try {
+    const data = await api.sendMessage(userText, currentConversationId, null, selectedModel);
+    if (textEl) {
+      textEl.textContent = data.reply.content;
+      textEl.dataset.rawText = data.reply.content;
+    }
+    const tagEl = messageEl.querySelector(".message-model-tag");
+    if (tagEl) tagEl.textContent = modelLabel(data.reply.model);
+    showToast("Regenerated");
+  } catch (err) {
+    if (textEl) textEl.textContent = originalContent;
+    showToast(err.message, "error");
+  } finally {
+    messageEl.classList.remove("regenerating");
+  }
+}
+
+// Builds the copy / like / dislike / refresh row shown under a message.
+// Like/dislike are mutually exclusive and are UI-only (session feedback),
+// since there's no backend endpoint yet to persist them.
+function makeMessageActions(role, content, messageEl) {
+  const bar = document.createElement("div");
+  bar.className = "message-actions";
+
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.className = "msg-action-btn";
+  copyBtn.title = "Copy";
+  copyBtn.setAttribute("aria-label", "Copy message");
+  copyBtn.innerHTML = "📋";
+  copyBtn.addEventListener("click", () => copyMessageText(content, copyBtn));
+  bar.appendChild(copyBtn);
+
+  if (role === "assistant") {
+    const likeBtn = document.createElement("button");
+    likeBtn.type = "button";
+    likeBtn.className = "msg-action-btn like-btn";
+    likeBtn.title = "Good response";
+    likeBtn.setAttribute("aria-label", "Mark as good response");
+    likeBtn.innerHTML = "👍";
+
+    const dislikeBtn = document.createElement("button");
+    dislikeBtn.type = "button";
+    dislikeBtn.className = "msg-action-btn dislike-btn";
+    dislikeBtn.title = "Bad response";
+    dislikeBtn.setAttribute("aria-label", "Mark as bad response");
+    dislikeBtn.innerHTML = "👎";
+
+    likeBtn.addEventListener("click", () => {
+      const wasActive = likeBtn.classList.contains("active");
+      likeBtn.classList.toggle("active", !wasActive);
+      dislikeBtn.classList.remove("active");
+      showToast(wasActive ? "Feedback removed" : "Thanks for the feedback!");
+    });
+    dislikeBtn.addEventListener("click", () => {
+      const wasActive = dislikeBtn.classList.contains("active");
+      dislikeBtn.classList.toggle("active", !wasActive);
+      likeBtn.classList.remove("active");
+      showToast(wasActive ? "Feedback removed" : "Thanks for the feedback!");
+    });
+
+    bar.appendChild(likeBtn);
+    bar.appendChild(dislikeBtn);
+
+    const refreshBtn = document.createElement("button");
+    refreshBtn.type = "button";
+    refreshBtn.className = "msg-action-btn refresh-btn";
+    refreshBtn.title = "Regenerate response";
+    refreshBtn.setAttribute("aria-label", "Regenerate response");
+    refreshBtn.innerHTML = "🔄";
+    refreshBtn.addEventListener("click", () => regenerateResponse(messageEl));
+    bar.appendChild(refreshBtn);
+  }
+
+  return bar;
 }
 
 function fileIconFor(mimetype) {
@@ -352,8 +584,10 @@ async function appendMessage(role, content, attachments, modelUsed) {
 
   if (content) {
     const textEl = document.createElement("div");
+    textEl.className = "message-text";
     textEl.textContent = content;
     el.appendChild(textEl);
+    el.appendChild(makeMessageActions(role, content, el));
   }
 
   if (role === "assistant" && content) {
@@ -432,8 +666,10 @@ function appendLocalMessage(role, content, file) {
 
   if (content) {
     const textEl = document.createElement("div");
+    textEl.className = "message-text";
     textEl.textContent = content;
     el.appendChild(textEl);
+    el.appendChild(makeMessageActions(role, content, el));
   }
 
   messagesEl.appendChild(el);
