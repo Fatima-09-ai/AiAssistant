@@ -1,12 +1,10 @@
-const fs = require("fs/promises");
-const path = require("path");
 const User = require("../models/User");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const Note = require("../models/Note");
 const Todo = require("../models/Todo");
 const Memory = require("../models/Memory");
-const { UPLOAD_DIR } = require("../middlewares/uploadMiddleware");
+const { deleteFile } = require("../services/cloudinaryService");
 
 // GET /api/admin/stats
 async function getStats(req, res, next) {
@@ -93,7 +91,9 @@ async function deleteUser(req, res, next) {
     const conversationIds = conversations.map((c) => c._id);
 
     const messages = await Message.find({ conversation: { $in: conversationIds } });
-    const filesToRemove = messages.flatMap((m) => (m.attachments || []).map((a) => path.join(UPLOAD_DIR, a.storedName)));
+    const filesToRemove = messages.flatMap((m) =>
+      (m.attachments || []).map((a) => deleteFile(a.cloudinaryPublicId, a.kind === "image" ? "image" : "raw"))
+    );
 
     await Promise.all([
       Message.deleteMany({ conversation: { $in: conversationIds } }),
@@ -102,7 +102,7 @@ async function deleteUser(req, res, next) {
       Todo.deleteMany({ user: user._id }),
       Memory.deleteMany({ user: user._id }),
       user.deleteOne(),
-      ...filesToRemove.map((p) => fs.unlink(p).catch(() => {})),
+      ...filesToRemove.map((p) => p.catch(() => {})),
     ]);
 
     res.json({ success: true, message: `${user.email} and all their data were deleted` });
