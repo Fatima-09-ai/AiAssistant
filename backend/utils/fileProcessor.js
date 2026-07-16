@@ -1,4 +1,3 @@
-const fs = require("fs/promises");
 const mammoth = require("mammoth");
 
 // How much extracted text we're willing to stuff into a single prompt.
@@ -14,33 +13,33 @@ function truncate(text) {
 
 /**
  * Pulls plain text out of a document attachment so it can be dropped into
- * the prompt as context. Returns "" (not a throw) on failure so a single
- * unreadable file doesn't take down the whole chat request.
+ * the prompt as context. Works directly off the in-memory Buffer multer
+ * gives us (no disk path — see uploadMiddleware) so this works the same in
+ * serverless as it did locally. Returns "" (not a throw) on failure so a
+ * single unreadable file doesn't take down the whole chat request.
  */
-async function extractText(filePath, mimetype) {
+async function extractText(buffer, mimetype) {
   try {
     if (mimetype === "application/pdf") {
       const { PDFParse } = require("pdf-parse");
-      const data = await fs.readFile(filePath);
-      const parser = new PDFParse({ data });
+      const parser = new PDFParse({ data: buffer });
       const result = await parser.getText();
       await parser.destroy();
       return truncate((result.text || "").trim());
     }
 
     if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-      const { value } = await mammoth.extractRawText({ path: filePath });
+      const { value } = await mammoth.extractRawText({ buffer });
       return truncate((value || "").trim());
     }
 
     if (mimetype === "text/plain" || mimetype === "text/csv" || mimetype === "text/markdown") {
-      const text = await fs.readFile(filePath, "utf-8");
-      return truncate(text.trim());
+      return truncate(buffer.toString("utf-8").trim());
     }
 
     return "";
   } catch (err) {
-    console.error(`Failed to extract text from ${filePath} (${mimetype}):`, err.message);
+    console.error(`Failed to extract text from buffer (${mimetype}):`, err.message);
     return "";
   }
 }
@@ -49,8 +48,7 @@ async function extractText(filePath, mimetype) {
  * Builds a base64 data URL for an image attachment, the format Groq's
  * vision models expect for inline (as opposed to hosted-URL) images.
  */
-async function toImageDataUrl(filePath, mimetype) {
-  const buffer = await fs.readFile(filePath);
+function toImageDataUrl(buffer, mimetype) {
   return `data:${mimetype};base64,${buffer.toString("base64")}`;
 }
 
