@@ -16,6 +16,7 @@
 </head>
 <body>
   <div class="app-shell">
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
     <aside class="sidebar">
       <div class="sidebar-brand">
         <div id="sidebar-mark" class="aura-mark" style="width:20px;height:20px;">
@@ -49,6 +50,9 @@
     <main class="chat-main">
       <header class="chat-header">
         <div class="brand-row">
+          <button type="button" id="sidebar-toggle" class="hamburger-btn" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+          </button>
           <div id="header-mark" class="aura-mark" style="width:18px;height:18px;">
             <svg viewBox="0 0 40 40" width="18" height="18">
               <defs>
@@ -97,6 +101,7 @@
   <script src="assets/js/api.js"></script>
   <script src="assets/js/toast.js"></script>
   <script src="assets/js/theme.js"></script>
+  <script src="assets/js/sidebar.js"></script>
   <script src="assets/js/auth.js"></script>
   <script src="assets/js/voice.js"></script>
   <script src="assets/js/chat.js"></script>
