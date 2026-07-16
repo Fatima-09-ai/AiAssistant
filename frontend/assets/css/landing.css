@@ -115,5 +115,12 @@
 
 @media (max-width: 800px) {
   .feature-grid { grid-template-columns: 1fr; }
-  .nav, .hero, .section, .footer { padding-left: 24px; padding-right: 24px; }
+  .nav, .hero, .section, .footer { padding-left: 20px; padding-right: 20px; }
+  .nav-brand span { display: none; }
+  .nav-links { gap: 8px; }
+  .nav-links .btn { padding: 9px 14px; font-size: 13px; }
+  .hero { padding-top: 60px; padding-bottom: 90px; }
+  .hero-cta { flex-direction: column; width: 100%; }
+  .hero-cta .btn { width: 100%; text-align: center; }
+  .footer { flex-direction: column; gap: 10px; text-align: center; }
 }
