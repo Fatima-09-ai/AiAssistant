@@ -130,3 +130,22 @@
   border-radius: 20px;
 }
 .todo-due.overdue { color: var(--danger); }
+
+/* =========================
+   Mobile (<= 900px)
+   ========================= */
+@media (max-width: 900px) {
+  .notes-workspace {
+    padding: 16px 14px 40px;
+    height: calc(100dvh - 60px);
+  }
+  .notes-tabs { gap: 4px; }
+  .notes-tab { padding: 6px 12px; font-size: 12.5px; }
+
+  .notes-grid { grid-template-columns: 1fr; }
+
+  .todo-form { flex-direction: column; }
+  .todo-form input[type="date"] { width: 100%; }
+
+  .todo-row { flex-wrap: wrap; gap: 8px; }
+}
