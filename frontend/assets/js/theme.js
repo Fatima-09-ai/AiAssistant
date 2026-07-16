@@ -1,3 +1,18 @@
+function setRealViewportHeight() {
+  // dvh isn't supported on older mobile browsers (pre-iOS 15.4 Safari, older
+  // Android webviews), so it silently falls back to 100vh and the mobile
+  // scroll-gap bug comes back. This sets a --real-vh custom property from the
+  // actual visible viewport height, which works everywhere.
+  const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight) * 0.01;
+  document.documentElement.style.setProperty("--real-vh", `${vh}px`);
+}
+
+setRealViewportHeight();
+window.addEventListener("resize", setRealViewportHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", setRealViewportHeight);
+}
+
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("aura_theme", theme);
