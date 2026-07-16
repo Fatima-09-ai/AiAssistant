@@ -7,6 +7,7 @@ const formEl = document.getElementById("composer-form");
 const inputEl = document.getElementById("message-input");
 const micBtn = document.getElementById("mic-btn");
 const convListEl = document.getElementById("conversation-list");
+const convSearchInput = document.getElementById("conversation-search");
 const headerMark = document.getElementById("header-mark");
 const statusLabel = document.getElementById("status-label");
 const exportBtn = document.getElementById("export-btn");
@@ -15,16 +16,6 @@ const attachBtn = document.getElementById("attach-btn");
 const fileInput = document.getElementById("file-input");
 const attachmentPreviewEl = document.getElementById("attachment-preview");
 const modelToggleEl = document.getElementById("model-toggle");
-const searchToggleBtn = document.getElementById("search-toggle-btn");
-const chatSearchBar = document.getElementById("chat-search-bar");
-const chatSearchInput = document.getElementById("chat-search-input");
-const chatSearchCount = document.getElementById("chat-search-count");
-const chatSearchPrev = document.getElementById("chat-search-prev");
-const chatSearchNext = document.getElementById("chat-search-next");
-const chatSearchClose = document.getElementById("chat-search-close");
-
-let searchMatches = [];
-let currentMatchIndex = -1;
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024; // matches the backend's multer limit
 
@@ -72,32 +63,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("logout-btn").addEventListener("click", logoutUser);
 
-  searchToggleBtn.addEventListener("click", () => {
-    const opening = chatSearchBar.hidden;
-    chatSearchBar.hidden = !opening;
-    if (opening) {
-      chatSearchInput.focus();
-    } else {
-      chatSearchInput.value = "";
-      performSearch("");
-    }
+  convSearchInput.addEventListener("input", () => {
+    filterConversationList(convSearchInput.value.trim());
   });
-
-  chatSearchClose.addEventListener("click", () => {
-    chatSearchBar.hidden = true;
-    chatSearchInput.value = "";
-    performSearch("");
-  });
-
-  chatSearchInput.addEventListener("input", () => performSearch(chatSearchInput.value.trim()));
-
-  chatSearchInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.preventDefault(); e.shiftKey ? goToPrevMatch() : goToNextMatch(); }
-    if (e.key === "Escape") { e.preventDefault(); chatSearchClose.click(); }
-  });
-
-  chatSearchNext.addEventListener("click", goToNextMatch);
-  chatSearchPrev.addEventListener("click", goToPrevMatch);
 
   exportBtn.addEventListener("click", () => {
     if (exportBtn.disabled) return;
@@ -181,79 +149,6 @@ function setAuraState(state) {
   }
 }
 
-function escapeHtml(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-// Highlights the first occurrence of `term` inside a .message-text element.
-// Keeps the original text stashed in a data attribute so it can be restored
-// exactly (and re-searched) without losing content to repeated highlighting.
-function highlightText(el, term) {
-  if (el.dataset.rawText === undefined) el.dataset.rawText = el.textContent;
-  const original = el.dataset.rawText;
-
-  if (!term) {
-    el.textContent = original;
-    return false;
-  }
-  const idx = original.toLowerCase().indexOf(term.toLowerCase());
-  if (idx === -1) {
-    el.textContent = original;
-    return false;
-  }
-  const before = escapeHtml(original.slice(0, idx));
-  const match = escapeHtml(original.slice(idx, idx + term.length));
-  const after = escapeHtml(original.slice(idx + term.length));
-  el.innerHTML = `${before}<mark class="chat-search-highlight">${match}</mark>${after}`;
-  return true;
-}
-
-function performSearch(term) {
-  searchMatches = [];
-  messagesEl.querySelectorAll(".message-text").forEach((textEl) => {
-    const matched = highlightText(textEl, term);
-    const messageEl = textEl.closest(".message");
-    if (!term) {
-      messageEl.classList.remove("message-dimmed");
-      return;
-    }
-    if (matched) {
-      messageEl.classList.remove("message-dimmed");
-      searchMatches.push(messageEl);
-    } else {
-      messageEl.classList.add("message-dimmed");
-    }
-  });
-  currentMatchIndex = searchMatches.length ? 0 : -1;
-  updateSearchCount();
-  if (currentMatchIndex >= 0) scrollToMatch();
-}
-
-function updateSearchCount() {
-  chatSearchCount.textContent = chatSearchInput.value
-    ? (searchMatches.length ? `${currentMatchIndex + 1}/${searchMatches.length}` : "0/0")
-    : "";
-}
-
-function scrollToMatch() {
-  const target = searchMatches[currentMatchIndex];
-  if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
-}
-
-function goToNextMatch() {
-  if (!searchMatches.length) return;
-  currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
-  updateSearchCount();
-  scrollToMatch();
-}
-
-function goToPrevMatch() {
-  if (!searchMatches.length) return;
-  currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
-  updateSearchCount();
-  scrollToMatch();
-}
-
 async function copyMessageText(content, btn) {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -288,7 +183,7 @@ async function regenerateResponse(messageEl) {
     return;
   }
   const userTextEl = prevUserEl.querySelector(".message-text");
-  const userText = userTextEl ? (userTextEl.dataset.rawText || userTextEl.textContent) : "";
+  const userText = userTextEl ? userTextEl.textContent : "";
   if (!userText) {
     showToast("Nothing to regenerate.", "error");
     return;
@@ -303,7 +198,6 @@ async function regenerateResponse(messageEl) {
     const data = await api.sendMessage(userText, currentConversationId, null, selectedModel);
     if (textEl) {
       textEl.textContent = data.reply.content;
-      textEl.dataset.rawText = data.reply.content;
     }
     const tagEl = messageEl.querySelector(".message-model-tag");
     if (tagEl) tagEl.textContent = modelLabel(data.reply.model);
@@ -314,6 +208,81 @@ async function regenerateResponse(messageEl) {
   } finally {
     messageEl.classList.remove("regenerating");
   }
+}
+
+// Swaps a user message's text for an editable textarea in place, with
+// Save & resend / Cancel controls. Esc cancels, Enter (no Shift) saves.
+function startEditMessage(messageEl) {
+  if (messageEl.querySelector(".message-edit-textarea")) return; // already editing
+
+  const textEl = messageEl.querySelector(".message-text");
+  const actionsEl = messageEl.querySelector(".message-actions");
+  const originalText = textEl.textContent;
+
+  const textarea = document.createElement("textarea");
+  textarea.className = "message-edit-textarea";
+  textarea.value = originalText;
+
+  const editActions = document.createElement("div");
+  editActions.className = "message-edit-actions";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "btn btn-primary message-edit-save";
+  saveBtn.textContent = "Save & resend";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "btn btn-ghost message-edit-cancel";
+  cancelBtn.textContent = "Cancel";
+
+  editActions.appendChild(saveBtn);
+  editActions.appendChild(cancelBtn);
+
+  textEl.replaceWith(textarea);
+  actionsEl.replaceWith(editActions);
+  textarea.focus();
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  autoGrowTextarea(textarea);
+  textarea.addEventListener("input", () => autoGrowTextarea(textarea));
+
+  const cancel = () => {
+    textarea.replaceWith(textEl);
+    editActions.replaceWith(actionsEl);
+  };
+
+  cancelBtn.addEventListener("click", cancel);
+  textarea.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { e.preventDefault(); cancel(); }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveBtn.click(); }
+  });
+
+  saveBtn.addEventListener("click", () => {
+    const newText = textarea.value.trim();
+    if (!newText) { showToast("Message can't be empty.", "error"); return; }
+    if (newText === originalText) { cancel(); return; }
+    resendEditedMessage(messageEl, newText);
+  });
+}
+
+function autoGrowTextarea(el) {
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
+// Removes this message and every message after it from the current view,
+// then resends the edited text through the normal send flow so a fresh
+// assistant reply is generated. Same caveat as the refresh button: the
+// backend records this as a new exchange rather than deleting the original
+// turns server-side, since there's no truncate-conversation endpoint yet.
+async function resendEditedMessage(messageEl, newText) {
+  let sib = messageEl;
+  while (sib) {
+    const next = sib.nextElementSibling;
+    sib.remove();
+    sib = next;
+  }
+  await handleSend(newText);
 }
 
 // Builds the copy / like / dislike / refresh row shown under a message.
@@ -331,6 +300,17 @@ function makeMessageActions(role, content, messageEl) {
   copyBtn.innerHTML = "📋";
   copyBtn.addEventListener("click", () => copyMessageText(content, copyBtn));
   bar.appendChild(copyBtn);
+
+  if (role === "user") {
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "msg-action-btn edit-btn";
+    editBtn.title = "Edit & resend";
+    editBtn.setAttribute("aria-label", "Edit message");
+    editBtn.innerHTML = "✏️";
+    editBtn.addEventListener("click", () => startEditMessage(messageEl));
+    bar.appendChild(editBtn);
+  }
 
   if (role === "assistant") {
     const likeBtn = document.createElement("button");
@@ -437,6 +417,7 @@ async function loadConversations() {
     conversations.forEach((c) => {
       const item = document.createElement("div");
       item.className = "conversation-item";
+      item.dataset.title = c.title.toLowerCase();
       if (c._id === currentConversationId) item.classList.add("active");
 
       const titleSpan = document.createElement("span");
@@ -484,9 +465,20 @@ async function loadConversations() {
       item.appendChild(deleteBtn);
       convListEl.appendChild(item);
     });
+    filterConversationList(convSearchInput.value.trim());
   } catch (err) {
     showToast(err.message, "error");
   }
+}
+
+// Filters the sidebar conversation list by title only (not message content).
+// Re-applied after every loadConversations() rebuild so the filter survives
+// rename/delete/new-chat refreshes.
+function filterConversationList(term) {
+  const lower = term.toLowerCase();
+  convListEl.querySelectorAll(".conversation-item").forEach((item) => {
+    item.style.display = !lower || item.dataset.title.includes(lower) ? "" : "none";
+  });
 }
 
 // Swaps a conversation's title span for an inline <input>, saves on
