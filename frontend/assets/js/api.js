@@ -147,4 +147,9 @@ const api = {
   listAdminUsers: () => apiRequest("/admin/users"),
   updateUserRole: (id, role) => apiRequest(`/admin/users/${id}/role`, { method: "PATCH", body: { role } }),
   deleteUserAccount: (id) => apiRequest(`/admin/users/${id}`, { method: "DELETE" }),
+
+  // Memory ("what AURA knows about me")
+  listMemories: () => apiRequest("/memories"),
+  deleteMemory: (id) => apiRequest(`/memories/${id}`, { method: "DELETE" }),
+  deleteAllMemories: () => apiRequest("/memories", { method: "DELETE" }),
 };
