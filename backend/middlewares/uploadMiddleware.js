@@ -35,4 +35,19 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
 });
 
-module.exports = { upload, ALLOWED_TYPES };
+// Separate instance for profile avatars — images only, smaller cap. Keeping
+// it distinct from the chat `upload` above means a stricter/looser limit
+// here never has to touch chat attachment behavior.
+const AVATAR_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+const avatarUpload = multer({
+  storage,
+  fileFilter(req, file, cb) {
+    if (!AVATAR_TYPES.has(file.mimetype)) {
+      return cb(new Error(`Unsupported image type: ${file.mimetype}`));
+    }
+    cb(null, true);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
+
+module.exports = { upload, avatarUpload, ALLOWED_TYPES };
