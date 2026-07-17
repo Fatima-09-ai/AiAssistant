@@ -22,6 +22,14 @@ function applyTheme(theme) {
   document.querySelectorAll(".theme-toggle-label").forEach((el) => {
     el.textContent = theme === "dark" ? "Light mode" : "Dark mode";
   });
+
+  // Only present on chat.html, where code blocks can appear in messages.
+  const hljsDark = document.getElementById("hljs-theme-dark");
+  const hljsLight = document.getElementById("hljs-theme-light");
+  if (hljsDark && hljsLight) {
+    hljsDark.disabled = theme !== "dark";
+    hljsLight.disabled = theme === "dark";
+  }
 }
 
 function toggleTheme() {
