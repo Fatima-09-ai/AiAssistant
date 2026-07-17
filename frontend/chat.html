@@ -16,6 +16,11 @@
 </script>
 <link rel="stylesheet" href="assets/css/global.css" />
 <link rel="stylesheet" href="assets/css/chat.css" />
+<link rel="stylesheet" id="hljs-theme-dark" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+<link rel="stylesheet" id="hljs-theme-light" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css" disabled />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -43,6 +48,7 @@
         <a href="notes.html" class="btn btn-ghost" style="width:100%;text-align:center;text-decoration:none;display:block;margin-bottom:8px;">📝 Notes & Todos</a>
         <a href="admin.html" id="admin-link" class="btn btn-ghost" style="width:100%;text-align:center;text-decoration:none;display:none;margin-bottom:8px;">🛡️ Admin panel</a>
         <a href="profile.html" class="btn btn-ghost" style="width:100%;text-align:center;text-decoration:none;display:block;margin-bottom:8px;">⚙️ Profile</a>
+        <a href="memories.html" class="btn btn-ghost" style="width:100%;text-align:center;text-decoration:none;display:block;margin-bottom:8px;">🧠 Memory</a>
         <div id="user-label">User</div>
         <button id="theme-toggle-btn" class="btn btn-ghost theme-toggle-btn" style="margin-top:10px;width:100%;">
           <span class="theme-toggle-icon">☀️</span>
