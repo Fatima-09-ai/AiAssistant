@@ -1,0 +1,60 @@
+.memories-workspace {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 24px 60px;
+}
+
+.memories-intro {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.memories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memory-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.memory-item .memory-fact { font-size: 14.5px; line-height: 1.5; }
+.memory-item .memory-meta {
+  font-size: 12px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  margin-top: 4px;
+}
+.memory-delete-btn {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  cursor: pointer;
+  font-size: 14px;
+}
+.memory-delete-btn:hover { border-color: var(--danger); color: var(--danger); background: rgba(251, 113, 133, 0.08); }
+
+.memories-empty {
+  color: var(--text-faint);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+@media (max-width: 900px) {
+  .memories-workspace { padding: 18px 14px 50px; }
+}
