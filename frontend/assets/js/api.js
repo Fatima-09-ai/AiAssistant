@@ -30,6 +30,38 @@ const api = {
   login: (email, password) => apiRequest("/auth/login", { method: "POST", body: { email, password }, auth: false }),
   logout: () => apiRequest("/auth/logout", { method: "POST" }),
   me: () => apiRequest("/auth/me"),
+  updateProfile: (name) => apiRequest("/auth/me", { method: "PATCH", body: { name } }),
+  changePassword: (currentPassword, newPassword) =>
+    apiRequest("/auth/me/password", { method: "PATCH", body: { currentPassword, newPassword } }),
+
+  // Multipart, like sendMessage — the browser sets the boundary itself, so
+  // no Content-Type header here.
+  uploadAvatar: async (file) => {
+    const form = new FormData();
+    form.append("avatar", file);
+
+    const headers = {};
+    const token = localStorage.getItem("aura_token");
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/auth/me/avatar`, {
+      method: "POST",
+      headers,
+      credentials: "include",
+      body: form,
+    });
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      data = { success: false, message: "Invalid server response" };
+    }
+    if (!res.ok || data.success === false) {
+      throw new Error(data.message || `Request failed (${res.status})`);
+    }
+    return data;
+  },
 
   listConversations: () => apiRequest("/chat/conversations"),
   renameConversation: (id, title) => apiRequest(`/chat/conversations/${id}`, { method: "PATCH", body: { title } }),
