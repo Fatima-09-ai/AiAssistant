@@ -8,6 +8,15 @@ function getCurrentUser() {
   return raw ? JSON.parse(raw) : null;
 }
 
+// Merges a partial update (e.g. new name or avatarUrl) into the cached user
+// object, so the sidebar label/avatar reflect it immediately without
+// waiting for a fresh /auth/me call.
+function updateStoredUser(patch) {
+  const current = getCurrentUser();
+  if (!current) return;
+  localStorage.setItem("aura_user", JSON.stringify({ ...current, ...patch }));
+}
+
 function requireAuth() {
   if (!localStorage.getItem("aura_token")) {
     window.location.href = "login.html";
