@@ -14,6 +14,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const notesRoutes = require("./routes/notesRoutes");
 const todosRoutes = require("./routes/todosRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const memoryRoutes = require("./routes/memoryRoutes");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -74,6 +75,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/notes", notesRoutes);
 app.use("/api/todos", todosRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/memories", memoryRoutes);
 
 // --- Serve frontend static files ---
 const frontendPath = path.join(__dirname, "..", "frontend");
