@@ -149,6 +149,40 @@ function setAuraState(state) {
   }
 }
 
+// Renders assistant message content as sanitized markdown. User messages
+// stay as plain text on purpose — they're just what was typed, and keeping
+// them plain also keeps the edit-and-resend textarea a faithful round trip.
+// Falls back to plain text if the CDN libraries didn't load (offline, ad
+// blocker, etc.) rather than showing raw asterisks/backticks.
+function renderMarkdown(raw) {
+  if (typeof marked === "undefined" || typeof DOMPurify === "undefined") return null;
+  try {
+    marked.setOptions({ breaks: true, gfm: true });
+    const dirty = marked.parse(raw);
+    return DOMPurify.sanitize(dirty, { ADD_ATTR: ["target", "rel"] });
+  } catch {
+    return null;
+  }
+}
+
+function highlightCodeBlocks(container) {
+  if (typeof hljs === "undefined") return;
+  container.querySelectorAll("pre code").forEach((block) => hljs.highlightElement(block));
+}
+
+function setAssistantMessageText(textEl, content) {
+  textEl.dataset.raw = content;
+  const html = renderMarkdown(content);
+  if (html !== null) {
+    textEl.classList.add("markdown-body");
+    textEl.innerHTML = html;
+    highlightCodeBlocks(textEl);
+  } else {
+    textEl.classList.remove("markdown-body");
+    textEl.textContent = content;
+  }
+}
+
 async function copyMessageText(content, btn) {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -190,20 +224,20 @@ async function regenerateResponse(messageEl) {
   }
 
   const textEl = messageEl.querySelector(".message-text");
-  const originalContent = textEl ? textEl.textContent : "";
+  const originalContent = textEl ? (textEl.dataset.raw ?? textEl.textContent) : "";
   messageEl.classList.add("regenerating");
   if (textEl) textEl.textContent = "Regenerating...";
 
   try {
     const data = await api.sendMessage(userText, currentConversationId, null, selectedModel);
     if (textEl) {
-      textEl.textContent = data.reply.content;
+      setAssistantMessageText(textEl, data.reply.content);
     }
     const tagEl = messageEl.querySelector(".message-model-tag");
     if (tagEl) tagEl.textContent = modelLabel(data.reply.model);
     showToast("Regenerated");
   } catch (err) {
-    if (textEl) textEl.textContent = originalContent;
+    if (textEl) setAssistantMessageText(textEl, originalContent);
     showToast(err.message, "error");
   } finally {
     messageEl.classList.remove("regenerating");
@@ -577,7 +611,11 @@ async function appendMessage(role, content, attachments, modelUsed) {
   if (content) {
     const textEl = document.createElement("div");
     textEl.className = "message-text";
-    textEl.textContent = content;
+    if (role === "assistant") {
+      setAssistantMessageText(textEl, content);
+    } else {
+      textEl.textContent = content;
+    }
     el.appendChild(textEl);
     el.appendChild(makeMessageActions(role, content, el));
   }
