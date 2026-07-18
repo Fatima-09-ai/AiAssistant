@@ -91,6 +91,22 @@
               <button data-format="pdf">Download as .pdf</button>
             </div>
           </div>
+          <div class="share-menu">
+            <button id="share-btn" class="btn btn-ghost share-btn" disabled>🔗 Share</button>
+            <div id="share-panel" class="share-panel">
+              <div id="share-panel-start">
+                <p class="share-panel-hint">Anyone with the link can view this chat, read-only — no login needed. It always shows the latest messages.</p>
+                <button type="button" id="share-get-link-btn" class="btn btn-primary">Get share link</button>
+              </div>
+              <div id="share-panel-link" hidden>
+                <input type="text" id="share-link-input" readonly />
+                <div class="share-panel-actions">
+                  <button type="button" id="share-copy-btn" class="btn btn-ghost">Copy</button>
+                  <button type="button" id="share-revoke-btn" class="btn btn-ghost">Stop sharing</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
