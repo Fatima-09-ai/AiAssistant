@@ -504,5 +504,11 @@
 
 @media (max-width: 480px) {
   .chat-header .brand-row strong { display: none; }
-  .model-toggle { display: none; }
+  .chat-header { padding: 10px 10px; gap: 6px; }
+  .chat-header > div[style*="display:flex"] { gap: 6px !important; }
+
+  .model-toggle { padding: 2px; }
+  .model-option { padding: 4px 6px; font-size: 10.5px; }
+
+  .export-btn { padding: 6px 8px; font-size: 11px; }
 }
