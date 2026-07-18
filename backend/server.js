@@ -15,6 +15,7 @@ const notesRoutes = require("./routes/notesRoutes");
 const todosRoutes = require("./routes/todosRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const memoryRoutes = require("./routes/memoryRoutes");
+const sharedRoutes = require("./routes/sharedRoutes");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -76,6 +77,7 @@ app.use("/api/notes", notesRoutes);
 app.use("/api/todos", todosRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/memories", memoryRoutes);
+app.use("/api/shared", sharedRoutes);
 
 // --- Serve frontend static files ---
 const frontendPath = path.join(__dirname, "..", "frontend");
