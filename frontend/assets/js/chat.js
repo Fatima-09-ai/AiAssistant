@@ -12,6 +12,15 @@ const headerMark = document.getElementById("header-mark");
 const statusLabel = document.getElementById("status-label");
 const exportBtn = document.getElementById("export-btn");
 const exportOptions = document.getElementById("export-options");
+const shareBtn = document.getElementById("share-btn");
+const sharePanel = document.getElementById("share-panel");
+const sharePanelStart = document.getElementById("share-panel-start");
+const sharePanelLink = document.getElementById("share-panel-link");
+const shareGetLinkBtn = document.getElementById("share-get-link-btn");
+const shareLinkInput = document.getElementById("share-link-input");
+const shareCopyBtn = document.getElementById("share-copy-btn");
+const shareRevokeBtn = document.getElementById("share-revoke-btn");
+let activeShareConvoId = null; // which conversation the currently-shown link belongs to
 const attachBtn = document.getElementById("attach-btn");
 const fileInput = document.getElementById("file-input");
 const attachmentPreviewEl = document.getElementById("attachment-preview");
@@ -35,6 +44,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     currentConversationId = null;
     messagesEl.innerHTML = "";
     exportBtn.disabled = true;
+    shareBtn.disabled = true;
+    sharePanel.classList.remove("open");
     clearSelectedFile();
     renderEmptyState();
   });
@@ -115,6 +126,60 @@ document.addEventListener("DOMContentLoaded", async () => {
         showToast(err.message, "error");
       }
     });
+  });
+
+  shareBtn.addEventListener("click", () => {
+    if (shareBtn.disabled) return;
+    const opening = !sharePanel.classList.contains("open");
+    sharePanel.classList.toggle("open");
+    // Reset to the "get link" view unless the panel already shows a link
+    // for the conversation currently open.
+    if (opening && activeShareConvoId !== currentConversationId) {
+      sharePanelStart.hidden = false;
+      sharePanelLink.hidden = true;
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".share-menu")) sharePanel.classList.remove("open");
+  });
+
+  shareGetLinkBtn.addEventListener("click", async () => {
+    if (!currentConversationId) return;
+    shareGetLinkBtn.disabled = true;
+    try {
+      const data = await api.shareConversation(currentConversationId);
+      const link = `${location.origin}/shared.html?token=${data.shareToken}`;
+      activeShareConvoId = currentConversationId;
+      shareLinkInput.value = link;
+      sharePanelStart.hidden = true;
+      sharePanelLink.hidden = false;
+      await navigator.clipboard.writeText(link).catch(() => {});
+      showToast("Share link copied");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      shareGetLinkBtn.disabled = false;
+    }
+  });
+
+  shareCopyBtn.addEventListener("click", async () => {
+    await navigator.clipboard.writeText(shareLinkInput.value).catch(() => {});
+    showToast("Share link copied");
+  });
+
+  shareRevokeBtn.addEventListener("click", async () => {
+    if (!currentConversationId) return;
+    try {
+      await api.unshareConversation(currentConversationId);
+      activeShareConvoId = null;
+      sharePanelStart.hidden = false;
+      sharePanelLink.hidden = true;
+      sharePanel.classList.remove("open");
+      showToast("Sharing turned off");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
   });
 
   formEl.addEventListener("submit", async (e) => {
@@ -585,6 +650,8 @@ function startRename(item, titleSpan, conversation) {
 async function openConversation(id, title) {
   currentConversationId = id;
   exportBtn.disabled = false;
+  shareBtn.disabled = false;
+  sharePanel.classList.remove("open");
   try {
     const { messages } = await api.getMessages(id);
     messagesEl.innerHTML = "";
@@ -754,6 +821,7 @@ async function handleSend(text) {
     if (!currentConversationId) {
       currentConversationId = data.conversationId;
       exportBtn.disabled = false;
+      shareBtn.disabled = false;
       await loadConversations();
     }
   } catch (err) {
