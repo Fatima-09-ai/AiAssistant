@@ -152,4 +152,9 @@ const api = {
   listMemories: () => apiRequest("/memories"),
   deleteMemory: (id) => apiRequest(`/memories/${id}`, { method: "DELETE" }),
   deleteAllMemories: () => apiRequest("/memories", { method: "DELETE" }),
+
+  // Sharing
+  shareConversation: (id) => apiRequest(`/chat/conversations/${id}/share`, { method: "POST" }),
+  unshareConversation: (id) => apiRequest(`/chat/conversations/${id}/share`, { method: "DELETE" }),
+  getSharedConversation: (token) => apiRequest(`/shared/${token}`, { auth: false }),
 };
