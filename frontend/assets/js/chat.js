@@ -16,6 +16,7 @@ const attachBtn = document.getElementById("attach-btn");
 const fileInput = document.getElementById("file-input");
 const attachmentPreviewEl = document.getElementById("attachment-preview");
 const modelToggleEl = document.getElementById("model-toggle");
+const sendBtn = document.getElementById("send-btn");
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024; // matches the backend's multer limit
 
@@ -59,6 +60,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     selectedFile = file;
     renderAttachmentPreview();
+    updateSendButtonState();
+  });
+
+  // Auto-grow like a normal chat composer, and send on Enter (Shift+Enter
+  // for a newline) instead of requiring the button.
+  inputEl.addEventListener("input", () => {
+    autoGrowTextarea(inputEl);
+    updateSendButtonState();
+  });
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!sendBtn.disabled) formEl.requestSubmit();
+    }
   });
 
   document.getElementById("logout-btn").addEventListener("click", logoutUser);
@@ -107,6 +122,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const text = inputEl.value.trim();
     if (!text && !selectedFile) return;
     inputEl.value = "";
+    inputEl.style.height = "auto";
+    updateSendButtonState();
     await handleSend(text);
   });
 
@@ -120,6 +137,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     AuraVoice.startListening({
       onResult: (transcript) => {
         inputEl.value = transcript;
+        autoGrowTextarea(inputEl);
+        updateSendButtonState();
       },
       onEnd: () => {
         micBtn.classList.remove("recording");
@@ -423,6 +442,13 @@ function clearSelectedFile() {
   selectedFile = null;
   fileInput.value = "";
   renderAttachmentPreview();
+  updateSendButtonState();
+}
+
+// Mirrors a normal chat model's composer: the send button is only enabled
+// once there's something to send (text or a pending attachment).
+function updateSendButtonState() {
+  sendBtn.disabled = !inputEl.value.trim() && !selectedFile;
 }
 
 function renderEmptyState() {
