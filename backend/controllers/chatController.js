@@ -309,6 +309,73 @@ async function getAttachment(req, res, next) {
   }
 }
 
+// POST /api/chat/conversations/:id/share — turns sharing on and returns the
+// token (reused if this conversation was shared before, so re-sharing
+// doesn't invalidate a link someone already has).
+async function shareConversation(req, res, next) {
+  try {
+    const conversation = await Conversation.findOne({ _id: req.params.id, user: req.user._id });
+    if (!conversation) return res.status(404).json({ success: false, message: "Conversation not found" });
+
+    if (!conversation.shareToken) {
+      conversation.shareToken = crypto.randomBytes(12).toString("hex");
+    }
+    conversation.isShared = true;
+    await conversation.save();
+
+    res.json({ success: true, shareToken: conversation.shareToken });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /api/chat/conversations/:id/share — revokes the link. The token
+// itself is left on the record (simplifies re-sharing later) but isShared
+// gates every public lookup, so the old link stops working immediately.
+async function unshareConversation(req, res, next) {
+  try {
+    const conversation = await Conversation.findOne({ _id: req.params.id, user: req.user._id });
+    if (!conversation) return res.status(404).json({ success: false, message: "Conversation not found" });
+
+    conversation.isShared = false;
+    await conversation.save();
+
+    res.json({ success: true, message: "Sharing turned off" });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/shared/:token — public, no auth. Only ever returns something for
+// a conversation whose owner currently has sharing turned on.
+// Attachments are intentionally omitted from the response: the file-serving
+// route requires the owner's login, so a public viewer couldn't load them
+// anyway, and this avoids sending broken image links.
+async function getSharedConversation(req, res, next) {
+  try {
+    const conversation = await Conversation.findOne({ shareToken: req.params.token, isShared: true });
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: "This shared chat isn't available" });
+    }
+
+    const messages = await Message.find({ conversation: conversation._id }).sort({ createdAt: 1 });
+
+    res.json({
+      success: true,
+      title: conversation.title,
+      messages: messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        hasAttachments: Boolean(m.attachments && m.attachments.length),
+        model: m.model,
+        createdAt: m.createdAt,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listConversations,
   renameConversation,
@@ -317,4 +384,7 @@ module.exports = {
   deleteConversation,
   exportConversation,
   getAttachment,
+  shareConversation,
+  unshareConversation,
+  getSharedConversation,
 };
