@@ -157,4 +157,8 @@ const api = {
   shareConversation: (id) => apiRequest(`/chat/conversations/${id}/share`, { method: "POST" }),
   unshareConversation: (id) => apiRequest(`/chat/conversations/${id}/share`, { method: "DELETE" }),
   getSharedConversation: (token) => apiRequest(`/shared/${token}`, { auth: false }),
+
+  // Bookmarks
+  toggleBookmark: (messageId) => apiRequest(`/chat/messages/${messageId}/bookmark`, { method: "PATCH" }),
+  listBookmarks: () => apiRequest("/chat/bookmarks"),
 };
