@@ -212,12 +212,21 @@ async function sendMessage(req, res, next) {
       success: true,
       conversationId,
       userMessage: {
+        _id: userMessage._id,
         role: "user",
         content: userMessageContent,
         attachments: userMessage.attachments,
+        bookmarked: userMessage.bookmarked,
         createdAt: userMessage.createdAt,
       },
-      reply: { role: "assistant", content: replyText, model: modelUsed, createdAt: assistantMessage.createdAt },
+      reply: {
+        _id: assistantMessage._id,
+        role: "assistant",
+        content: replyText,
+        model: modelUsed,
+        bookmarked: assistantMessage.bookmarked,
+        createdAt: assistantMessage.createdAt,
+      },
     });
   } catch (err) {
     next(err);
@@ -376,6 +385,49 @@ async function getSharedConversation(req, res, next) {
   }
 }
 
+// PATCH /api/chat/messages/:id/bookmark — toggles bookmarked on/off for one
+// of the current user's own messages (user or assistant turn, either can be
+// bookmarked). Returns the new state so the frontend doesn't have to guess.
+async function toggleBookmark(req, res, next) {
+  try {
+    const message = await Message.findOne({ _id: req.params.id, user: req.user._id });
+    if (!message) return res.status(404).json({ success: false, message: "Message not found" });
+
+    message.bookmarked = !message.bookmarked;
+    await message.save();
+
+    res.json({ success: true, messageId: message._id, bookmarked: message.bookmarked });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/chat/bookmarks — every bookmarked message across all of this
+// user's conversations, newest first, with the parent conversation's title
+// so the frontend can link back to it.
+async function listBookmarks(req, res, next) {
+  try {
+    const messages = await Message.find({ user: req.user._id, bookmarked: true })
+      .sort({ createdAt: -1 })
+      .populate("conversation", "title");
+
+    res.json({
+      success: true,
+      bookmarks: messages.map((m) => ({
+        _id: m._id,
+        role: m.role,
+        content: m.content,
+        model: m.model,
+        createdAt: m.createdAt,
+        conversationId: m.conversation?._id,
+        conversationTitle: m.conversation?.title || "Untitled chat",
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listConversations,
   renameConversation,
@@ -387,4 +439,6 @@ module.exports = {
   shareConversation,
   unshareConversation,
   getSharedConversation,
+  toggleBookmark,
+  listBookmarks,
 };
