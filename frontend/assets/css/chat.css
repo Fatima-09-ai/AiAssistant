@@ -217,6 +217,7 @@
   padding: 12px 18px;
   border-radius: var(--radius);
   max-width: 70%;
+  box-shadow: var(--glow-sm);
 }
 .message.assistant {
   align-self: flex-start;
@@ -224,6 +225,7 @@
   border-left: 2px solid var(--violet);
   color: var(--text);
   max-width: 85%;
+  box-shadow: -8px 0 16px -14px var(--violet);
 }
 .message.typing { color: var(--text-faint); font-style: italic; border-left-color: var(--text-faint); }
 
@@ -269,6 +271,7 @@
 .model-option.active {
   background: var(--aurora-gradient);
   color: #06090f;
+  box-shadow: var(--glow-sm);
 }
 .message-model-tag {
   display: inline-block;
@@ -296,7 +299,7 @@
 .message-speak-btn.speaking {
   border-color: var(--rose);
   color: var(--rose);
-  background: rgba(244, 114, 182, 0.08);
+  background: rgba(255, 46, 154, 0.08);
 }
 
 
@@ -321,8 +324,9 @@
   transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 .msg-action-btn:hover { border-color: var(--teal); color: var(--text); background: var(--bg-raised); }
-.msg-action-btn.like-btn.active { border-color: var(--teal); color: var(--teal); background: rgba(45, 212, 191, 0.1); }
-.msg-action-btn.dislike-btn.active { border-color: var(--rose); color: var(--rose); background: rgba(244, 114, 182, 0.1); }
+.msg-action-btn.like-btn.active { border-color: var(--teal); color: var(--teal); background: rgba(0, 229, 255, 0.12); }
+.msg-action-btn.dislike-btn.active { border-color: var(--rose); color: var(--rose); background: rgba(255, 46, 154, 0.12); }
+.msg-action-btn.bookmark-btn.active { border-color: #ffd60a; color: #ffd60a; background: rgba(255, 214, 10, 0.12); box-shadow: 0 0 10px rgba(255, 214, 10, 0.35); }
 .message.regenerating .message-text { opacity: 0.5; font-style: italic; }
 
 /* --- Rendered markdown inside assistant messages --- */
@@ -396,7 +400,7 @@
 .mic-btn:hover { border-color: var(--teal); }
 .mic-btn.recording {
   border-color: var(--rose);
-  box-shadow: 0 0 0 4px rgba(244, 114, 182, 0.15);
+  box-shadow: 0 0 0 4px rgba(255, 46, 154, 0.2);
 }
 .send-btn {
   flex-shrink: 0;
@@ -410,9 +414,10 @@
   cursor: pointer;
   background: var(--aurora-gradient);
   color: #06090f;
-  transition: opacity 0.15s ease, transform 0.1s ease;
+  box-shadow: var(--glow-sm);
+  transition: opacity 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
-.send-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.send-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--glow-md); }
 .send-btn:active:not(:disabled) { transform: translateY(0); }
 .send-btn:disabled {
   background: var(--bg-raised);
