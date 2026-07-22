@@ -23,6 +23,7 @@ const messageSchema = new mongoose.Schema(
     content: { type: String, required: true },
     attachments: { type: [attachmentSchema], default: undefined },
     model: { type: String, default: undefined }, // assistant messages only — which Groq model answered
+    bookmarked: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
