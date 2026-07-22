@@ -1,22 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Aurora token system */
-  --bg: #090c14;
-  --bg-elevated: #10141f;
-  --bg-raised: #161b29;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.16);
+  /* Neon token system */
+  --bg: #060512;
+  --bg-elevated: #0d0b1f;
+  --bg-raised: #14112a;
+  --border: rgba(180, 140, 255, 0.14);
+  --border-strong: rgba(180, 140, 255, 0.28);
 
-  --teal: #2dd4bf;
-  --violet: #8b7ff5;
-  --rose: #f472b6;
+  --teal: #00e5ff;
+  --violet: #b537f2;
+  --rose: #ff2e9a;
   --aurora-gradient: linear-gradient(115deg, var(--teal) 0%, var(--violet) 50%, var(--rose) 100%);
 
+  --glow-sm: 0 0 12px rgba(181, 55, 242, 0.45);
+  --glow-md: 0 0 24px rgba(181, 55, 242, 0.35), 0 0 8px rgba(0, 229, 255, 0.25);
+  --glow-strong: 0 0 32px rgba(255, 46, 154, 0.4), 0 0 16px rgba(181, 55, 242, 0.4);
+
   --text: #edeff5;
-  --text-dim: #8a93ac;
-  --text-faint: #5b6478;
-  --danger: #fb7185;
+  --text-dim: #9aa0c2;
+  --text-faint: #656b8f;
+  --danger: #ff3d68;
 
   --radius-sm: 8px;
   --radius: 14px;
@@ -39,6 +43,9 @@
   --text: #12141c;
   --text-dim: #5b6478;
   --text-faint: #8a93ac;
+  --glow-sm: none;
+  --glow-md: none;
+  --glow-strong: none;
 }
 
 html { scroll-behavior: smooth; }
@@ -90,14 +97,15 @@ a { color: var(--teal); }
 .btn-primary {
   background: var(--aurora-gradient);
   color: #06090f;
+  box-shadow: var(--glow-sm);
 }
-.btn-primary:hover { opacity: 0.9; }
+.btn-primary:hover { opacity: 0.92; box-shadow: var(--glow-md); }
 .btn-ghost {
   background: transparent;
   color: var(--text);
   border: 1px solid var(--border-strong);
 }
-.btn-ghost:hover { background: var(--bg-elevated); }
+.btn-ghost:hover { background: var(--bg-elevated); border-color: var(--violet); box-shadow: var(--glow-sm); }
 
 input, textarea {
   font-family: var(--font-body);
@@ -111,7 +119,7 @@ input, textarea {
   font-size: 14.5px;
 }
 input::placeholder, textarea::placeholder { color: var(--text-faint); }
-input:focus, textarea:focus { border-color: var(--teal); }
+input:focus, textarea:focus { border-color: var(--teal); box-shadow: var(--glow-sm); }
 
 /* --- Signature element: the aurora mark --- */
 .aura-mark {
@@ -129,15 +137,15 @@ input:focus, textarea:focus { border-color: var(--teal); }
   inset: -30%;
   background: var(--aurora-gradient);
   filter: blur(18px);
-  opacity: 0.35;
+  opacity: 0.5;
   border-radius: 50%;
   z-index: -1;
   transition: opacity 0.3s ease;
 }
 .aura-mark.listening { animation-duration: 1.8s; }
-.aura-mark.listening::after { opacity: 0.6; }
+.aura-mark.listening::after { opacity: 0.75; }
 .aura-mark.speaking { animation-duration: 2.6s; }
-.aura-mark.speaking::after { opacity: 0.5; }
+.aura-mark.speaking::after { opacity: 0.65; }
 
 @keyframes auraDrift {
   from { filter: hue-rotate(0deg); }
@@ -153,8 +161,8 @@ input:focus, textarea:focus { border-color: var(--teal); }
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(circle at 20% 15%, rgba(45,212,191,0.10), transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(244,114,182,0.10), transparent 40%);
+    radial-gradient(circle at 20% 15%, rgba(0,229,255,0.14), transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(255,46,154,0.14), transparent 40%);
 }
 .auth-card {
   width: 400px;
