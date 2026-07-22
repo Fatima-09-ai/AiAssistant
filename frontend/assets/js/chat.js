@@ -40,6 +40,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await loadConversations();
 
+  const deepLinkId = new URLSearchParams(location.search).get("conversation");
+  if (deepLinkId) {
+    await openConversation(deepLinkId);
+    history.replaceState(null, "", "chat.html");
+  }
+
   document.getElementById("new-chat-btn").addEventListener("click", () => {
     currentConversationId = null;
     messagesEl.innerHTML = "";
@@ -289,7 +295,28 @@ async function copyMessageText(content, btn) {
   }
 }
 
-// Re-sends the question that produced this assistant message to get a fresh
+// Toggles bookmarked state for a message via the API, then flips the star
+// icon. Does nothing (with a toast) if the message hasn't finished saving
+// server-side yet — happens if you click bookmark the instant you send.
+async function toggleBookmarkForMessage(messageEl, btn) {
+  const id = messageEl.dataset.messageId;
+  if (!id) {
+    showToast("Still sending — try again in a second.", "error");
+    return;
+  }
+  btn.disabled = true;
+  try {
+    const data = await api.toggleBookmark(id);
+    messageEl.dataset.bookmarked = data.bookmarked ? "true" : "false";
+    btn.innerHTML = data.bookmarked ? "★" : "☆";
+    btn.classList.toggle("active", data.bookmarked);
+    showToast(data.bookmarked ? "Bookmarked" : "Bookmark removed");
+  } catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
 // reply, and swaps it in place. Note: this asks the backend for a new answer
 // just like a normal send, so the regenerated turn is stored as an
 // additional exchange in the conversation history (the original isn't
@@ -319,6 +346,10 @@ async function regenerateResponse(messageEl) {
     }
     const tagEl = messageEl.querySelector(".message-model-tag");
     if (tagEl) tagEl.textContent = modelLabel(data.reply.model);
+    messageEl.dataset.messageId = data.reply._id;
+    messageEl.dataset.bookmarked = "false";
+    const bookmarkBtn = messageEl.querySelector(".bookmark-btn");
+    if (bookmarkBtn) { bookmarkBtn.innerHTML = "☆"; bookmarkBtn.classList.remove("active"); }
     showToast("Regenerated");
   } catch (err) {
     if (textEl) setAssistantMessageText(textEl, originalContent);
@@ -418,6 +449,15 @@ function makeMessageActions(role, content, messageEl) {
   copyBtn.innerHTML = "📋";
   copyBtn.addEventListener("click", () => copyMessageText(content, copyBtn));
   bar.appendChild(copyBtn);
+
+  const bookmarkBtn = document.createElement("button");
+  bookmarkBtn.type = "button";
+  bookmarkBtn.className = "msg-action-btn bookmark-btn";
+  bookmarkBtn.title = "Bookmark";
+  bookmarkBtn.setAttribute("aria-label", "Bookmark message");
+  bookmarkBtn.innerHTML = "☆";
+  bookmarkBtn.addEventListener("click", () => toggleBookmarkForMessage(messageEl, bookmarkBtn));
+  bar.appendChild(bookmarkBtn);
 
   if (role === "user") {
     const editBtn = document.createElement("button");
@@ -656,7 +696,7 @@ async function openConversation(id, title) {
     const { messages } = await api.getMessages(id);
     messagesEl.innerHTML = "";
     for (const m of messages) {
-      await appendMessage(m.role, m.content, m.attachments, m.model);
+      await appendMessage(m.role, m.content, m.attachments, m.model, m._id, m.bookmarked);
     }
     await loadConversations(); // refresh so the active item highlights correctly
   } catch (err) {
@@ -672,9 +712,11 @@ function modelLabel(model) {
   return "";
 }
 
-async function appendMessage(role, content, attachments, modelUsed) {
+async function appendMessage(role, content, attachments, modelUsed, messageId, bookmarked) {
   const el = document.createElement("div");
   el.className = `message ${role}`;
+  if (messageId) el.dataset.messageId = messageId;
+  el.dataset.bookmarked = bookmarked ? "true" : "false";
 
   if (role === "assistant" && modelUsed) {
     const tag = document.createElement("div");
@@ -710,7 +752,13 @@ async function appendMessage(role, content, attachments, modelUsed) {
       textEl.textContent = content;
     }
     el.appendChild(textEl);
-    el.appendChild(makeMessageActions(role, content, el));
+    const actions = makeMessageActions(role, content, el);
+    if (bookmarked) {
+      const bookmarkBtn = actions.querySelector(".bookmark-btn");
+      bookmarkBtn.innerHTML = "★";
+      bookmarkBtn.classList.add("active");
+    }
+    el.appendChild(actions);
   }
 
   if (role === "assistant" && content) {
@@ -804,7 +852,7 @@ async function handleSend(text) {
   if (messagesEl.querySelector(".empty-state")) messagesEl.innerHTML = "";
 
   const fileToSend = selectedFile;
-  appendLocalMessage("user", text, fileToSend);
+  const userEl = appendLocalMessage("user", text, fileToSend);
   clearSelectedFile();
 
   const typingEl = document.createElement("div");
@@ -816,7 +864,8 @@ async function handleSend(text) {
   try {
     const data = await api.sendMessage(text, currentConversationId, fileToSend, selectedModel);
     typingEl.remove();
-    await appendMessage("assistant", data.reply.content, undefined, data.reply.model);
+    if (userEl && data.userMessage?._id) userEl.dataset.messageId = data.userMessage._id;
+    await appendMessage("assistant", data.reply.content, undefined, data.reply.model, data.reply._id, false);
 
     if (!currentConversationId) {
       currentConversationId = data.conversationId;
