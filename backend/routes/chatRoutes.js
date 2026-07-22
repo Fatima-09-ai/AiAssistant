@@ -10,6 +10,8 @@ const {
   getAttachment,
   shareConversation,
   unshareConversation,
+  toggleBookmark,
+  listBookmarks,
 } = require("../controllers/chatController");
 const { protect } = require("../middlewares/authMiddleware");
 const { upload } = require("../middlewares/uploadMiddleware");
@@ -24,6 +26,8 @@ router.post("/conversations/:id/share", shareConversation);
 router.delete("/conversations/:id/share", unshareConversation);
 router.get("/attachments/:filename", getAttachment);
 router.delete("/conversations/:id", deleteConversation);
+router.get("/bookmarks", listBookmarks);
+router.patch("/messages/:id/bookmark", toggleBookmark);
 // upload.single("file") is a no-op when no file is sent, so this route
 // still works fine for plain text-only messages.
 router.post("/message", upload.single("file"), sendMessage);
